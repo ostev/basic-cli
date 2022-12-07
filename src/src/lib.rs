@@ -14,6 +14,7 @@ use std::fs::File;
 use std::io::Write;
 use std::os::raw::c_char;
 use std::path::Path;
+use std::process::Command;
 use std::time::Duration;
 
 use file_glue::ReadErr;
@@ -409,13 +410,9 @@ pub extern "C" fn roc_fx_fileReadBytes(roc_path: &RocList<u8>) -> RocResult<RocL
     match File::open(path_from_roc_path(roc_path)) {
         Ok(mut file) => match file.read_to_end(&mut bytes) {
             Ok(_bytes_read) => RocResult::ok(RocList::from(bytes.as_slice())),
-            Err(err) => {
-                RocResult::err(toRocReadError(err))
-            }
+            Err(err) => RocResult::err(toRocReadError(err)),
         },
-        Err(err) => {
-            RocResult::err(toRocReadError(err))
-        }
+        Err(err) => RocResult::err(toRocReadError(err)),
     }
 }
 
@@ -423,9 +420,7 @@ pub extern "C" fn roc_fx_fileReadBytes(roc_path: &RocList<u8>) -> RocResult<RocL
 pub extern "C" fn roc_fx_fileDelete(roc_path: &RocList<u8>) -> RocResult<(), ReadErr> {
     match std::fs::remove_file(path_from_roc_path(roc_path)) {
         Ok(()) => RocResult::ok(()),
-        Err(err) => {
-            RocResult::err(toRocReadError(err))
-        }
+        Err(err) => RocResult::err(toRocReadError(err)),
     }
 }
 
@@ -459,9 +454,7 @@ pub extern "C" fn roc_fx_dirList(
                 })
                 .collect::<RocList<RocList<u8>>>(),
         ),
-        Err(err) => {
-            RocResult::err(toRocWriteError(err))
-        }
+        Err(err) => RocResult::err(toRocWriteError(err)),
     }
 }
 
@@ -479,6 +472,13 @@ fn os_str_to_roc_path(os_str: &OsStr) -> RocList<u8> {
     let bytes: Vec<_> = os_str.encode_wide().flat_map(|c| c.to_be_bytes()).collect();
 
     RocList::from(bytes.as_slice())
+}
+
+/// Executes a command using the OS's default shell.
+/// Should be `sh` on UNIX-like OSes and `cmd` on Windows.
+#[no_mangle]
+pub extern "C" fn roc_fx_exec_command(roc_command: &glue::Command) -> glue::CommandOutput {
+    let output = Command::new()
 }
 
 #[no_mangle]
@@ -571,8 +571,8 @@ pub extern "C" fn roc_fx_sendRequest(roc_request: &glue::Request) -> glue::Respo
     }
 }
 
-fn toRocWriteError(err : std::io::Error) -> file_glue::WriteErr {
-    match err.kind(){
+fn toRocWriteError(err: std::io::Error) -> file_glue::WriteErr {
+    match err.kind() {
         std::io::ErrorKind::NotFound => file_glue::WriteErr::NotFound,
         std::io::ErrorKind::AlreadyExists => file_glue::WriteErr::AlreadyExists,
         std::io::ErrorKind::Interrupted => file_glue::WriteErr::Interrupted,
@@ -583,20 +583,20 @@ fn toRocWriteError(err : std::io::Error) -> file_glue::WriteErr {
         std::io::ErrorKind::WriteZero => file_glue::WriteErr::WriteZero,
         _ => file_glue::WriteErr::Unsupported,
         // TODO investigate support the following IO errors
-        // std::io::ErrorKind::FileTooLarge <- unstable language feature 
-        // std::io::ErrorKind::ExecutableFileBusy <- unstable language feature 
-        // std::io::ErrorKind::FilesystemQuotaExceeded <- unstable language feature 
-        // std::io::ErrorKind::InvalidFilename <- unstable language feature 
-        // std::io::ErrorKind::ResourceBusy <- unstable language feature 
-        // std::io::ErrorKind::ReadOnlyFilesystem <- unstable language feature 
-        // std::io::ErrorKind::TooManyLinks <- unstable language feature 
-        // std::io::ErrorKind::StaleNetworkFileHandle <- unstable language feature 
+        // std::io::ErrorKind::FileTooLarge <- unstable language feature
+        // std::io::ErrorKind::ExecutableFileBusy <- unstable language feature
+        // std::io::ErrorKind::FilesystemQuotaExceeded <- unstable language feature
+        // std::io::ErrorKind::InvalidFilename <- unstable language feature
+        // std::io::ErrorKind::ResourceBusy <- unstable language feature
+        // std::io::ErrorKind::ReadOnlyFilesystem <- unstable language feature
+        // std::io::ErrorKind::TooManyLinks <- unstable language feature
+        // std::io::ErrorKind::StaleNetworkFileHandle <- unstable language feature
         // std::io::ErrorKind::StorageFull <- unstable language feature
     }
 }
 
-fn toRocReadError(err : std::io::Error) -> file_glue::ReadErr {
-    match err.kind(){
+fn toRocReadError(err: std::io::Error) -> file_glue::ReadErr {
+    match err.kind() {
         std::io::ErrorKind::Interrupted => file_glue::ReadErr::Interrupted,
         std::io::ErrorKind::NotFound => file_glue::ReadErr::NotFound,
         std::io::ErrorKind::OutOfMemory => file_glue::ReadErr::OutOfMemory,
