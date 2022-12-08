@@ -26,7 +26,11 @@ hosted Effect
         processExit,
         spawnCommand
     ]
-    imports [InternalHttp.{ Request, Response }, InternalFile, InternalDir]
+    imports
+        [ InternalHttp.{ Request, Response }
+        , InternalFile
+        , InternalDir
+        , InternalCommand ]
     generates Effect with [after, map, always, forever, loop]
 
 stdoutLine : Str -> Effect {}
