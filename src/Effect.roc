@@ -24,6 +24,7 @@ hosted Effect
         fileWriteUtf8,
         fileWriteBytes,
         processExit,
+        spawnCommand
     ]
     imports [InternalHttp.{ Request, Response }, InternalFile, InternalDir]
     generates Effect with [after, map, always, forever, loop]
@@ -53,3 +54,5 @@ args : Effect (List Str)
 cwd : Effect (List U8)
 
 sendRequest : Box Request -> Effect Response
+
+spawnCommand : Box InternalCommand.Command -> Effect (Result InternalCommand.ExitStatus {})
