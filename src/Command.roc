@@ -8,13 +8,13 @@ Command : [ InternalCommand { executable: Str, args: List Str, workingDirectory:
 # do this in type aliases.
 
 ## When something went wrong with a `Command`...
-Error : {  }
+
 
 ## Creates a `Command` from an executable which can then be built upon:
 ##     command "git"
 ##     |> withArgs ["clone", "https://github.com/roc-lang/basic-cli.git"]
 ##     |> inDir (Path.fromStr "~/develop")
-##     |> toTask
+##     |> run
 command : Str -> Command
 command = \executable ->
     InternalCommand {
@@ -39,8 +39,19 @@ inDir = \command, dir ->
         InternalCommand internals ->
             { internals & workingDir: Ok dir }
 
-runCommand : Command -> Task Str Error
-runCommand = \command ->
-    # TODO: Fix our C ABI codegen so that we don't this Box.box heap allocation
+## Spawns a `Command` process, inheriting
+## `stdin`, `stdout` and `stderr` from your application:
+##     main =
+##         exitStatus <-
+##             command "ls"
+##             |> inDir "../examples"
+##             |> spawn
+##             |> Task.await
+## Note that this task only fails if the process fails
+## to start, not if the process is unexpectedly terminated
+## or returns an error exit code.
+spawn : Command -> Task ExitStatus {}
+spawn = \command ->
+    # TODO: Fix our C ABI codegen so that we don't have to perform this Box.box heap allocation
     Effect.runCommand (Box.box command)
     |> InternalTask.fromEffect
